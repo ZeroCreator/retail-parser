@@ -19,7 +19,11 @@ class Config:
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
     ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
     USE_LLM = os.getenv('USE_LLM', 'true').lower() == 'true'
-    
+
+    # Remote debugging settings
+    USE_REMOTE_DEBUG = os.getenv('USE_REMOTE_DEBUG', 'false').lower() == 'true'
+    REMOTE_DEBUG_PORT = int(os.getenv('REMOTE_DEBUG_PORT', '9222'))
+
     OUTPUT_DIR = 'output'
     
     # Store URLs

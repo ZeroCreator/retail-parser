@@ -49,47 +49,82 @@ class KBSpider(BaseSpider):
         self.browser = None
 
     async def parse(self):
-        logger.info(f"Начало парсинга {self.name}")
+        logger.info("=" * 80)
+        logger.info(f"🍷 ЗАПУСК ПАРСЕРА КРАСНОЕ & БЕЛОЕ ({self.name})")
+        logger.info("=" * 80)
+        logger.info(f"Base URL: {self.base_url}")
+        logger.info(f"Количество категорий: {len(self.categories)}")
+        logger.info(f"USE_LLM: {Config.USE_LLM}")
+        logger.info(f"USE_REMOTE_DEBUG: {Config.USE_REMOTE_DEBUG}")
+        logger.info(f"REMOTE_DEBUG_PORT: {Config.REMOTE_DEBUG_PORT}")
+        logger.info("=" * 80)
 
-        # Запускаем браузер
-        self.browser = BrowserClient()
+        # Запускаем браузер с поддержкой remote debugging если включено в конфиге
+        logger.info("🌐 Инициализация BrowserClient...")
+        self.browser = BrowserClient(
+            use_remote_debug=Config.USE_REMOTE_DEBUG,
+            remote_debug_port=Config.REMOTE_DEBUG_PORT
+        )
+        
+        logger.info("🚀 Запуск браузера...")
         await self.browser.start()
+        logger.info("✅ Браузер успешно запущен")
 
         try:
             if Config.USE_LLM and self.llm:
+                logger.info("🤖 Парсинг с использованием LLM...")
                 await self._parse_with_llm()
             else:
+                logger.info("📝 Традиционный парсинг...")
                 await self._parse_traditional()
         finally:
             # Закрываем браузер
+            logger.info("🔒 Закрытие браузера...")
             if self.browser:
                 await self.browser.close()
+            logger.info("✅ Браузер закрыт")
 
-        logger.info(f"Завершение парсинга {self.name}: {len(self.products)} товаров")
+        logger.info("=" * 80)
+        logger.info(f"🎉 ЗАВЕРШЕНИЕ ПАРСИНГА {self.name}")
+        logger.info(f"📦 Всего товаров собрано: {len(self.products)}")
+        logger.info("=" * 80)
 
     async def _parse_with_llm(self):
         """Парсинг с использованием LLM"""
-        for category_url in self.categories:
+        logger.info("=" * 60)
+        logger.info("🤖 ЗАПУСК LLM ПАРСИНГА")
+        logger.info("=" * 60)
+        
+        for idx, category_url in enumerate(self.categories, 1):
             url = f"{self.base_url}{category_url}"
-            logger.info(f"Парсинг категории: {category_url}")
-            
+            logger.info("=" * 60)
+            logger.info(f"📂 КАТЕГОРИЯ {idx}/{len(self.categories)}: {category_url}")
+            logger.info(f"🔗 Полный URL: {url}")
+            logger.info("=" * 60)
+
             try:
                 # Получаем HTML через браузер с ожиданием
+                logger.info(f"⏳ Загрузка HTML...")
                 html = await self.browser.get_html(url, wait_time=8000)
-                
+
                 if not html:
-                    logger.warning(f"Пустой HTML для {category_url}")
+                    logger.warning(f"⚠️  Пустой HTML для {category_url}")
                     continue
-                
-                logger.info(f"Размер HTML: {len(html)} байт")
-                
+
+                logger.info(f"📄 Размер HTML: {len(html)} байт ({len(html) / 1024:.1f} KB)")
+
                 # Сохраняем HTML для отладки
-                with open(f'output/debug_{category_url.replace("/", "_")}.html', 'w', encoding='utf-8') as f:
+                safe_filename = category_url.replace('/', '_').strip('_')
+                output_path = f'output/debug_{safe_filename}.html'
+                logger.info(f"💾 Сохранение HTML для отладки: {output_path}")
+                with open(output_path, 'w', encoding='utf-8') as f:
                     f.write(html[:50000])
-                logger.info(f"HTML сохранён для отладки")
-                
+                logger.info(f"✅ HTML сохранён для отладки (первые 50KB)")
+
                 # Используем LLM для извлечения товаров
+                logger.info(f"🤖 Извлечение товаров через LLM...")
                 products_data = await self.llm.parse_html(html, self.name)
+                logger.info(f"📦 LLM вернул {len(products_data)} товаров")
 
                 for item in products_data:
                     product = Product(
@@ -103,45 +138,77 @@ class KBSpider(BaseSpider):
                         store=self.name
                     )
                     self.add_product(product)
-                
-                logger.info(f"Найдено {len(products_data)} товаров в {category_url}")
+
+                logger.info(f"✅ Обработано {len(products_data)} товаров в {category_url}")
                 await delay()
-                
+
             except Exception as e:
-                logger.error(f"Ошибка парсинга категории {category_url}: {e}")
+                logger.error(f"❌ Ошибка парсинга категории {category_url}: {e}")
+                logger.error(f"Тип ошибки: {type(e).__name__}")
+                import traceback
+                logger.error(f"Stacktrace: {traceback.format_exc()}")
 
     async def _parse_traditional(self):
         """Традиционный парсинг через селекторы"""
-        for category_url in self.categories:
+        logger.info("=" * 60)
+        logger.info("📝 ЗАПУСК ТРАДИЦИОННОГО ПАРСИНГА")
+        logger.info("=" * 60)
+        
+        for idx, category_url in enumerate(self.categories, 1):
             url = f"{self.base_url}{category_url}"
-            logger.info(f"Парсинг категории: {category_url}")
-            
+            logger.info("=" * 60)
+            logger.info(f"📂 КАТЕГОРИЯ {idx}/{len(self.categories)}: {category_url}")
+            logger.info(f"🔗 Полный URL: {url}")
+            logger.info("=" * 60)
+
             try:
+                logger.info(f"⏳ Загрузка HTML...")
                 html = await self.browser.get_html(url, wait_time=5000)
+                
                 if html:
+                    logger.info(f"📄 HTML получен, размер: {len(html)} байт")
+                    logger.info(f"🔍 Парсинг карточек товаров...")
                     await self.parse_category_from_html(html, category_url)
+                else:
+                    logger.warning(f"⚠️  Пустой HTML для {category_url}")
+                    
             except Exception as e:
-                logger.error(f"Ошибка парсинга категории {category_url}: {e}")
-            
+                logger.error(f"❌ Ошибка парсинга категории {category_url}: {e}")
+                logger.error(f"Тип ошибки: {type(e).__name__}")
+                import traceback
+                logger.error(f"Stacktrace: {traceback.format_exc()}")
+
             await delay()
 
     async def parse_category_from_html(self, html: str, category_url: str) -> list[Product]:
         """Парсинг HTML категории"""
+        logger.info("🔍 Начало парсинга HTML категории...")
         products = []
         try:
+            logger.info("🥣 Создание BeautifulSoup объекта...")
             soup = BeautifulSoup(html, 'lxml')
+            logger.info("✅ BeautifulSoup объект создан")
 
             # Ищем карточки товаров
+            logger.info("🔍 Поиск карточек товаров...")
             product_cards = soup.select('.goods-item, .product-item, .catalog-item, [class*="product"], [class*="goods"]')
+            logger.info(f"📦 Найдено {len(product_cards)} потенциальных карточек")
 
-            for card in product_cards[:50]:
+            for i, card in enumerate(product_cards[:50], 1):
+                logger.debug(f"  Обработка карточки {i}/{min(50, len(product_cards))}")
                 product = await self._parse_card(card, category_url)
                 if product:
                     products.append(product)
                     self.add_product(product)
+                    logger.debug(f"    ✅ Добавлен товар: {product.name[:50]}...")
+
+            logger.info(f"✅ Обработано {len(products)} товаров из {category_url}")
 
         except Exception as e:
-            logger.error(f"Ошибка парсинга категории {category_url}: {e}")
+            logger.error(f"❌ Ошибка парсинга категории {category_url}: {e}")
+            logger.error(f"Тип ошибки: {type(e).__name__}")
+            import traceback
+            logger.error(f"Stacktrace: {traceback.format_exc()}")
 
         return products
 

@@ -4,12 +4,12 @@
 
 ## Магазины
 
-- X5 (Пятёрочка) - https://5ka.ru/catalog/ видны каталоги, однако товары в них не отображаются.
+- X5 (Пятёрочка) - https://5ka.ru/catalog/ видны каталоги, товары есть.
 - Магнит - https://magnit.ru/catalog - товары есть
 - Ярче - https://yarche.ru/ - непонятно что собирать (студия рекламных роликов)
 - Красное & Белое - https://krasnoeibeloe.ru/catalog/ - видны подкаталоги, есть товары
 - Мария Ра - https://www.maria-ra.ru/aktsii/ - подгружается по кнопке
-- Чижик - https://chizhik.club/catalog/?cityId=c1cfe4b9-f7c2-423c-abfa-6ed1c05a15c5 - не загружается каталог
+- Чижик - https://chizhik.club/catalog/?cityId=c1cfe4b9-f7c2-423c-abfa-6ed1c05a15c5 - товары есть
 
 ## 🚀 Быстрый старт
 
